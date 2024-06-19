@@ -4,7 +4,7 @@ class Board:
     def __init__(self, screen):
         self.width = 10
         self.height = 20
-        self.cell_size = 18
+        self.cell_size = 18 # Idk which cell_size takes priority
         self.screen = screen
         self.grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
 

@@ -15,7 +15,8 @@ class ZPiece:
         self.shape = self.states[self.current_state]
         self.x = 4
         self.y = 0
-        self.cell_size = 18  # Adjust this according to your game
+        self.cell_size = 18 
+        self.color = (255, 0, 0)  # RED
 
     def rotate(self, reverse=False):
         if reverse:
@@ -25,11 +26,10 @@ class ZPiece:
         self.shape = self.states[self.current_state]
 
     def draw(self, screen, offset_x, offset_y):
-        color = (255, 0, 0)  # Red color for LPiece (adjust as needed)
         for y, row in enumerate(self.shape):
             for x, cell in enumerate(row):
                 if cell:
-                    pygame.draw.rect(screen, color,
+                    pygame.draw.rect(screen, self.color,
                                         (offset_x + (self.x + x) * self.cell_size,
                                         offset_y + (self.y + y) * self.cell_size,
                                         self.cell_size, self.cell_size), 0)

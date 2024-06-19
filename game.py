@@ -4,25 +4,28 @@ from pygame.locals import *
 from board import Board
 from pieces import IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece
 from random import choice
+import random
 
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen_width = 512
-        self.screen_height = 512
+        self.screen_width = 600
+        self.screen_height = 600
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption('Tetris')
+        pygame.display.set_caption('TetrisRoguelike')
 
         self.board_width = 10
         self.board_height = 20
-        self.cell_size = 20  # Adjust cell size for better visual alignment
+        self.cell_size = 20 
         self.board_pixel_width = self.board_width * self.cell_size
         self.board_pixel_height = self.board_height * self.cell_size
         self.offset_x = (self.screen_width - self.board_pixel_width) // 2
         self.offset_y = (self.screen_height - self.board_pixel_height) // 2
         self.delay = 0
 
-        self.board = Board(self.screen)  # Pass pygame screen surface to Board
+        self.board = Board(self.screen)
+        self.bag = []
+        self.last_piece = None
         self.current_piece = self.new_piece()
         self.held_piece = None
         self.can_hold = True
@@ -31,32 +34,80 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.ARR = 50  # Movement interval in milliseconds (adjust as needed)
-        self.DAS = 30
-        self.gravity_interval = 500  # Gravity interval in milliseconds (adjust as needed)
+        self.ARR = 50  # Auto Repeat Rate in milliseconds
+        self.gravity = 500  # Gravity interval in milliseconds 
+        self.DAS = 15  # Delayed Auto Shift in milliseconds
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
 
         self.background_color = (200, 200, 200)  # Light gray background color
 
+        # Initialize key state tracking
+        self.key_held = {K_LEFT: False, K_RIGHT: False}
+        self.key_initial_time = {K_LEFT: 0, K_RIGHT: 0}
+        self.key_delay_over = {K_LEFT: False, K_RIGHT: False}
+
         self.game_loop()
 
-    def new_piece(self):
+    def initialize_bag(self):
         pieces = [IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece]
-        return choice(pieces)()
+        random.shuffle(pieces)
+        self.bag = pieces
 
+    def new_piece(self):
+        if not self.bag:
+            self.initialize_bag()
+
+        new_piece = self.bag.pop()
+
+        # Avoid immediate repeats
+        if new_piece == self.last_piece and self.bag:
+            self.bag.insert(0, new_piece)
+            new_piece = self.bag.pop()
+
+        self.last_piece = new_piece
+        return new_piece()
+    
     def handle_input(self):
         keys = pygame.key.get_pressed()
-        
+        current_time = pygame.time.get_ticks()
+
         # Continuous movement handling
         if keys[K_LEFT]:
+            if not self.key_held[K_LEFT]:
+                self.key_held[K_LEFT] = True
+                self.key_initial_time[K_LEFT] = current_time
+                self.handle_movement(self.move_left, initial=True)
+            else:
+                if not self.key_delay_over[K_LEFT]:
+                    if current_time - self.key_initial_time[K_LEFT] >= self.DAS:
+                        self.key_delay_over[K_LEFT] = True
+                        self.last_move_time = current_time
+                if self.key_delay_over[K_LEFT]:
+                    self.handle_movement(self.move_left)
+        else:
+            self.key_held[K_LEFT] = False
+            self.key_delay_over[K_LEFT] = False
 
-            self.handle_movement(self.move_left)
-        elif keys[K_RIGHT]:
-            self.handle_movement(self.move_right)
-        elif keys[K_z]:
+        if keys[K_RIGHT]:
+            if not self.key_held[K_RIGHT]:
+                self.key_held[K_RIGHT] = True
+                self.key_initial_time[K_RIGHT] = current_time
+                self.handle_movement(self.move_right, initial=True)
+            else:
+                if not self.key_delay_over[K_RIGHT]:
+                    if current_time - self.key_initial_time[K_RIGHT] >= self.DAS:
+                        self.key_delay_over[K_RIGHT] = True
+                        self.last_move_time = current_time
+                if self.key_delay_over[K_RIGHT]:
+                    self.handle_movement(self.move_right)
+        else:
+            self.key_held[K_RIGHT] = False
+            self.key_delay_over[K_RIGHT] = False
+
+        if keys[K_DOWN]:
             self.handle_movement(self.move_down)
-        
+
         # Single key press handling
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -70,10 +121,9 @@ class Game:
                 elif event.key == K_c:
                     self.hold_piece()
 
-
-    def handle_movement(self, movement_func):
+    def handle_movement(self, movement_func, initial=False):
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_move_time >= self.ARR:
+        if initial or current_time - self.last_move_time >= self.ARR:
             movement_func()
             self.last_move_time = current_time
 
@@ -117,7 +167,7 @@ class Game:
 
     def update(self):
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_gravity_time >= self.gravity_interval:
+        if current_time - self.last_gravity_time >= self.gravity:
             if self.board.can_move(self.current_piece, 0, 1):
                 self.current_piece.y += 1
             else:
@@ -139,7 +189,7 @@ class Game:
         for y, row in enumerate(self.board.grid):
             for x, cell in enumerate(row):
                 if cell:
-                    pygame.draw.rect(self.screen, (0, 0, 255),
+                    pygame.draw.rect(self.screen, self.current_piece.color,
                                      (self.offset_x + x * self.cell_size,
                                       self.offset_y + y * self.cell_size,
                                       self.cell_size, self.cell_size))
@@ -148,7 +198,7 @@ class Game:
         for y, row in enumerate(self.current_piece.shape):
             for x, cell in enumerate(row):
                 if cell:
-                    pygame.draw.rect(self.screen, (255, 0, 0),
+                    pygame.draw.rect(self.screen, self.current_piece.color,
                                      (self.offset_x + (self.current_piece.x + x) * self.cell_size,
                                       self.offset_y + (self.current_piece.y + y) * self.cell_size,
                                       self.cell_size, self.cell_size))
