@@ -34,18 +34,20 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.ARR = 50  # Auto Repeat Rate in milliseconds
-        self.gravity = 500  # Gravity interval in milliseconds 
-        self.DAS = 15  # Delayed Auto Shift in milliseconds
+        self.ARR = 50  # Auto Repeat Rate 
+        self.gravity = 500  # Gravity interval 
+        self.DAS = 15  # Delayed Auto Shift 
+        self.LockDelay = 500 # How until piece is added to board upon last action
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
+        self.last_LockDelay = pygame.time.get_ticks()
 
         self.background_color = (200, 200, 200)  # Light gray background color
 
         # Initialize key state tracking
-        self.key_held = {K_LEFT: False, K_RIGHT: False}
-        self.key_initial_time = {K_LEFT: 0, K_RIGHT: 0}
-        self.key_delay_over = {K_LEFT: False, K_RIGHT: False}
+        self.key_held = {K_LEFT: False, K_RIGHT: False, K_z: False}
+        self.key_initial_time = {K_LEFT: 0, K_RIGHT: 0, K_z: 0}
+        self.key_delay_over = {K_LEFT: False, K_RIGHT: False, K_z: False}
 
         self.game_loop()
 
@@ -105,9 +107,21 @@ class Game:
             self.key_held[K_RIGHT] = False
             self.key_delay_over[K_RIGHT] = False
 
-        if keys[K_DOWN]:
-            self.handle_movement(self.move_down)
-
+        if keys[K_z]:
+            if not self.key_held[K_z]:
+                self.key_held[K_z] = True
+                self.key_initial_time[K_z] = current_time
+                self.handle_movement(self.move_down, initial=True)
+            else:
+                if not self.key_delay_over[K_z]:
+                    if current_time - self.key_initial_time[K_z] >= self.DAS:
+                        self.key_delay_over[K_z] = True
+                        self.last_move_time = current_time
+                if self.key_delay_over[K_z]:
+                    self.handle_movement(self.move_down)
+        else:
+            self.key_held[K_z] = False
+            self.key_delay_over[K_z] = False
         # Single key press handling
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -189,7 +203,7 @@ class Game:
         for y, row in enumerate(self.board.grid):
             for x, cell in enumerate(row):
                 if cell:
-                    pygame.draw.rect(self.screen, self.current_piece.color,
+                    pygame.draw.rect(self.screen, (128,128,128),
                                      (self.offset_x + x * self.cell_size,
                                       self.offset_y + y * self.cell_size,
                                       self.cell_size, self.cell_size))
@@ -236,7 +250,7 @@ class Game:
             for y, row in enumerate(self.held_piece.shape):
                 for x, cell in enumerate(row):
                     if cell:
-                        pygame.draw.rect(self.screen, (0, 255, 0),
+                        pygame.draw.rect(self.screen, self.held_piece.color,
                                          (10 + x * self.cell_size,
                                           10 + y * self.cell_size,
                                           self.cell_size, self.cell_size))
@@ -246,7 +260,7 @@ class Game:
             self.handle_input()
             self.update()
             self.draw()
-            self.clock.tick(60)  # Cap the frame rate at 60 FPS
+            self.clock.tick(240)  # Cap the frame rate at 240 FPS
 
 if __name__ == "__main__":
     game = Game()
