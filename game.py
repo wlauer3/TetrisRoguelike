@@ -4,21 +4,22 @@ from pygame.locals import *
 from board import Board
 from pieces import IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece
 from random import choice
+from config import Config
 import random
 
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen_width = 600
-        self.screen_height = 600
+        self.screen_width = Config.SCREEN_WIDTH
+        self.screen_height = Config.SCREEN_HEIGHT
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption('TetrisRoguelike')
 
-        self.board_width = 10
-        self.board_height = 20
-        self.cell_size = 20 
+        self.board_width = Config.BOARD_WIDTH
+        self.board_height = Config.BOARD_HEIGHT
+        self.cell_size = Config.CELL_SIZE
         self.board_pixel_width = self.board_width * self.cell_size
-        self.board_pixel_height = self.board_height * self.cell_size
+        self.board_pixel_height = (self.board_height - 2) * self.cell_size  # Adjust for hidden rows
         self.offset_x = (self.screen_width - self.board_pixel_width) // 2
         self.offset_y = (self.screen_height - self.board_pixel_height) // 2
         self.delay = 0
@@ -37,7 +38,7 @@ class Game:
         self.ARR = 50  # Auto Repeat Rate 
         self.gravity = 500  # Gravity interval 
         self.DAS = 15  # Delayed Auto Shift 
-        self.LockDelay = 500 # How until piece is added to board upon last action
+        self.LockDelay = 500 # Time piece is added to board upon last action
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
         self.last_LockDelay = pygame.time.get_ticks()
@@ -68,7 +69,9 @@ class Game:
             new_piece = self.bag.pop()
 
         self.last_piece = new_piece
-        return new_piece()
+        piece_instance = new_piece()
+        piece_instance.y = -2  # Start the piece in the hidden rows
+        return piece_instance
     
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -130,6 +133,8 @@ class Game:
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
                     self.rotate_clockwise()
+                elif event.key == K_DOWN:
+                    self.rotate_counterclockwise()
                 elif event.key == K_SPACE:
                     self.hard_drop()
                 elif event.key == K_c:
@@ -154,18 +159,36 @@ class Game:
             self.current_piece.y += 1
 
     def rotate_clockwise(self):
-        self.current_piece.rotate()
+        self.current_piece.rotate(reverse=False)
         if not self.board.can_move(self.current_piece, 0, 0):
             self.current_piece.rotate(reverse=True)
+
+    def rotate_counterclockwise(self):
+        self.current_piece.rotate(reverse=True)
+        if not self.board.can_move(self.current_piece, 0, 0):
+            self.current_piece.rotate(reverse=False)
 
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
+        
+        # Check if the piece is in row 23 or higher
+        if self.current_piece.y >= 22:
+            self.running = False
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+            return
+
         self.board.add_piece(self.current_piece)
         lines_cleared = self.board.clear_lines()
         self.lines_cleared += lines_cleared
         self.current_piece = self.new_piece()
         self.can_hold = True
+
+        if not self.board.can_move(self.current_piece, 0, 0):
+            self.running = False
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+
+
 
     def hold_piece(self):
         if not self.can_hold:
@@ -176,7 +199,7 @@ class Game:
         else:
             self.current_piece, self.held_piece = self.held_piece, self.current_piece
         self.current_piece.x = self.board_width // 2 - len(self.current_piece.shape[0]) // 2
-        self.current_piece.y = 0
+        self.current_piece.y = -2  # Start the piece in the hidden rows
         self.can_hold = False
 
     def update(self):
@@ -185,6 +208,12 @@ class Game:
             if self.board.can_move(self.current_piece, 0, 1):
                 self.current_piece.y += 1
             else:
+                # Check if the piece is in row 23 or higher
+                if self.current_piece.y >= 22:
+                    self.running = False
+                    print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+                    return
+                
                 self.board.add_piece(self.current_piece)
                 lines_cleared = self.board.clear_lines()
                 self.lines_cleared += lines_cleared
@@ -197,31 +226,40 @@ class Game:
 
             self.last_gravity_time = current_time
 
+
+
     def draw(self):
         self.screen.fill(self.background_color)
 
-        for y, row in enumerate(self.board.grid):
-            for x, cell in enumerate(row):
+        for y in range(2, self.board.height):  # Skip the top 2 rows
+            for x, cell in enumerate(self.board.grid[y]):
                 if cell:
-                    pygame.draw.rect(self.screen, (128,128,128),
-                                     (self.offset_x + x * self.cell_size,
-                                      self.offset_y + y * self.cell_size,
-                                      self.cell_size, self.cell_size))
+                    pygame.draw.rect(self.screen, (128, 128, 128),
+                                    (self.offset_x + x * self.cell_size,
+                                    self.offset_y + (y - 2) * self.cell_size,  # Adjust for hidden rows
+                                    self.cell_size, self.cell_size))
         self.draw_ghost_piece()
-        
+
         for y, row in enumerate(self.current_piece.shape):
             for x, cell in enumerate(row):
                 if cell:
+                    draw_y = self.current_piece.y + y - 2
                     pygame.draw.rect(self.screen, self.current_piece.color,
-                                     (self.offset_x + (self.current_piece.x + x) * self.cell_size,
-                                      self.offset_y + (self.current_piece.y + y) * self.cell_size,
-                                      self.cell_size, self.cell_size))
-                    
-        pygame.draw.rect(self.screen, (0, 0, 0),
-                         (self.offset_x, self.offset_y,
-                          self.board_pixel_width, self.board_pixel_height), 5)
+                                    (self.offset_x + (self.current_piece.x + x) * self.cell_size,
+                                    self.offset_y + draw_y * self.cell_size,
+                                    self.cell_size, self.cell_size))
 
-        
+        # Draw the three-sided border, leaving the top open
+        pygame.draw.line(self.screen, (0, 0, 0), 
+                        (self.offset_x, self.offset_y + self.board_pixel_height), 
+                        (self.offset_x + self.board_pixel_width, self.offset_y + self.board_pixel_height), 4)
+        pygame.draw.line(self.screen, (0, 0, 0), 
+                        (self.offset_x, self.offset_y), 
+                        (self.offset_x, self.offset_y + self.board_pixel_height), 4)
+        pygame.draw.line(self.screen, (0, 0, 0), 
+                        (self.offset_x + self.board_pixel_width, self.offset_y), 
+                        (self.offset_x + self.board_pixel_width, self.offset_y + self.board_pixel_height), 4)
+
         self.draw_held_piece()
 
         score_text = f"Lines Cleared: {self.lines_cleared}"
@@ -232,6 +270,7 @@ class Game:
 
         pygame.display.update()
 
+
     def draw_ghost_piece(self):
         ghost_piece = self.current_piece.copy()
         while self.board.can_move(ghost_piece, 0, 1):
@@ -240,10 +279,13 @@ class Game:
         for y, row in enumerate(ghost_piece.shape):
             for x, cell in enumerate(row):
                 if cell:
-                    pygame.draw.rect(self.screen, (169, 169, 169),
-                                     (self.offset_x + (ghost_piece.x + x) * self.cell_size,
-                                      self.offset_y + (ghost_piece.y + y) * self.cell_size,
-                                      self.cell_size, self.cell_size))
+                    draw_y = ghost_piece.y + y - 2  # Adjust for hidden rows
+                    if draw_y >= 0:
+                        pygame.draw.rect(self.screen, (169, 169, 169),
+                                        (self.offset_x + (ghost_piece.x + x) * self.cell_size,
+                                        self.offset_y + draw_y * self.cell_size,
+                                        self.cell_size, self.cell_size))
+
 
     def draw_held_piece(self):
         if self.held_piece:

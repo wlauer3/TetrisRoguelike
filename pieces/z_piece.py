@@ -1,4 +1,5 @@
 import pygame
+from config import Config
 
 class ZPiece:
     def __init__(self):
@@ -7,6 +8,14 @@ class ZPiece:
              [0, 1, 1],
              [0, 0, 0]],
              
+            [[0, 0, 1],
+             [0, 1, 1],
+             [0, 1, 0]],
+
+            [[0, 0, 0],
+             [1, 1, 0],
+             [0, 1, 1]],
+             
             [[0, 1, 0],
              [1, 1, 0],
              [1, 0, 0]]
@@ -14,11 +23,11 @@ class ZPiece:
         self.current_state = 0
         self.shape = self.states[self.current_state]
         self.x = 4
-        self.y = 0
-        self.cell_size = 18 
+        self.y = 1
+        self.cell_size = Config.CELL_SIZE
         self.color = (255, 0, 0)  # RED
 
-    def rotate(self, reverse=False):
+    def rotate(self, reverse):
         if reverse:
             self.current_state = (self.current_state - 1) % len(self.states)
         else:

@@ -1,19 +1,22 @@
 import pygame
+from config import Config
+
 
 class OPiece:
     def __init__(self):
         self.states = [
             [[1, 1],
-             [1, 1]]
+             [ 1, 1]],
+             
         ]
         self.current_state = 0
         self.shape = self.states[self.current_state]
         self.x = 4
-        self.y = 0
-        self.cell_size = 18 
+        self.y = 1
+        self.cell_size = Config.CELL_SIZE
         self.color = (255,255,0)  # YELLOW
     
-    def rotate(self, reverse=False):
+    def rotate(self):
         pass  # O piece does not rotate
 
     def draw(self, screen, offset_x, offset_y):
