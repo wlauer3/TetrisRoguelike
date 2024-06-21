@@ -5,6 +5,7 @@ from board import Board
 from pieces import IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece
 from random import choice
 from config import Config
+import wallkicks
 import random
 
 class Game:
@@ -77,7 +78,6 @@ class Game:
         keys = pygame.key.get_pressed()
         current_time = pygame.time.get_ticks()
 
-        # Continuous movement handling
         if keys[K_LEFT]:
             if not self.key_held[K_LEFT]:
                 self.key_held[K_LEFT] = True
@@ -125,7 +125,7 @@ class Game:
         else:
             self.key_held[K_z] = False
             self.key_delay_over[K_z] = False
-        # Single key press handling
+
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
@@ -158,15 +158,26 @@ class Game:
         if self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
 
+    def rotate_piece(self, reverse=False):
+        initial_state = self.current_piece.current_state
+        self.current_piece.rotate(reverse)
+        final_state = self.current_piece.current_state
+
+        kicks = wallkicks.get_wall_kicks(self.current_piece.type, initial_state, final_state)
+
+        for x_offset, y_offset in kicks:
+            if self.board.can_move(self.current_piece, x_offset, y_offset):
+                self.current_piece.x += x_offset
+                self.current_piece.y += y_offset
+                return
+        # If no valid kicks, revert to original state
+        self.current_piece.rotate(not reverse)
+
     def rotate_clockwise(self):
-        self.current_piece.rotate(reverse=False)
-        if not self.board.can_move(self.current_piece, 0, 0):
-            self.current_piece.rotate(reverse=True)
+        self.rotate_piece(reverse=False)
 
     def rotate_counterclockwise(self):
-        self.current_piece.rotate(reverse=True)
-        if not self.board.can_move(self.current_piece, 0, 0):
-            self.current_piece.rotate(reverse=False)
+        self.rotate_piece(reverse=True)
 
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):

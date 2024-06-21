@@ -1,5 +1,6 @@
 import pygame
 from config import Config
+import wallkicks
 
 
 class OPiece:
@@ -12,12 +13,13 @@ class OPiece:
         self.current_state = 0
         self.shape = self.states[self.current_state]
         self.x = 4
-        self.y = 1
+        self.y = 2
         self.cell_size = Config.CELL_SIZE
         self.color = (255,255,0)  # YELLOW
+        self.type = 'O'
     
-    def rotate(self):
-        pass  # O piece does not rotate
+    def rotate(self, reverse=False, board=None):
+        pass
 
     def draw(self, screen, offset_x, offset_y):
         for y, row in enumerate(self.shape):
@@ -31,6 +33,7 @@ class OPiece:
                                      (offset_x + (self.x + x) * self.cell_size,
                                       offset_y + (self.y + y) * self.cell_size,
                                       self.cell_size, self.cell_size), 1)
+
     def copy(self):
         copied_piece = OPiece()
         copied_piece.states = [state[:] for state in self.states]
@@ -38,4 +41,6 @@ class OPiece:
         copied_piece.shape = self.shape[:]
         copied_piece.x = self.x
         copied_piece.y = self.y
+        copied_piece.color = self.color
+        copied_piece.type = self.type
         return copied_piece
