@@ -23,7 +23,7 @@ class SPiece:
         ]
         self.current_state = 0
         self.shape = self.states[self.current_state]
-        self.x = 4
+        self.x = 3
         self.y = 2
         self.cell_size = Config.CELL_SIZE
         self.color = (0, 255, 0)  # GREEN
