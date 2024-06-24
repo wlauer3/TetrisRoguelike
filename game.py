@@ -42,7 +42,9 @@ class Game:
         self.LockDelay = 500 # Time piece is added to board upon last action
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
-        self.last_LockDelay = pygame.time.get_ticks()
+        self.lock_delay_start = None  # Timer for lock delay
+        self.lock_delay_reset = False  # Flag to reset the lock delay on movement
+
 
         self.background_color = (200, 200, 200)  # Light gray background color
 
@@ -145,6 +147,8 @@ class Game:
         if initial or current_time - self.last_move_time >= self.ARR:
             movement_func()
             self.last_move_time = current_time
+            self.lock_delay_start = None  # Reset lock delay timer on movement/rotation
+            self.lock_delay_reset = True  # Indicate that lock delay should be reset
 
     def move_left(self):
         if self.board.can_move(self.current_piece, -1, 0):
@@ -182,6 +186,7 @@ class Game:
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
+        self.lock_piece()  # Lock the piece immediately on hard drop
         
         # Check if the piece is in row 23 or higher
         if self.current_piece.y >= 22:
@@ -189,7 +194,6 @@ class Game:
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
             return
 
-        self.board.add_piece(self.current_piece)
         lines_cleared = self.board.clear_lines()
         self.lines_cleared += lines_cleared
         self.current_piece = self.new_piece()
@@ -212,30 +216,40 @@ class Game:
         self.current_piece.x = self.board_width // 2 - len(self.current_piece.shape[0]) // 2
         self.current_piece.y = -2  # Start the piece in the hidden rows
         self.can_hold = False
+        self.lock_delay_start = None  # Reset lock delay timer on hold
+        self.lock_delay_reset = True  # Indicate that lock delay should be reset
+
+    def lock_piece(self):
+        self.board.add_piece(self.current_piece)
+        lines_cleared = self.board.clear_lines()
+        self.lines_cleared += lines_cleared
+        self.current_piece = self.new_piece()
+        self.can_hold = True
+        self.lock_delay_start = None  # Reset the lock delay timer for the new piece
+        self.lock_delay_reset = False  # Reset the lock delay reset flag
+
+        if not self.board.can_move(self.current_piece, 0, 0):
+            self.running = False
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
 
     def update(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_gravity_time >= self.gravity:
             if self.board.can_move(self.current_piece, 0, 1):
                 self.current_piece.y += 1
+                self.lock_delay_start = None  # Reset lock delay timer on movement
+                self.lock_delay_reset = False  # Piece moved down, reset should not apply
             else:
-                # Check if the piece is in row 23 or higher
-                if self.current_piece.y >= 22:
-                    self.running = False
-                    print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
-                    return
-                
-                self.board.add_piece(self.current_piece)
-                lines_cleared = self.board.clear_lines()
-                self.lines_cleared += lines_cleared
-                self.current_piece = self.new_piece()
-                self.can_hold = True
-
-                if not self.board.can_move(self.current_piece, 0, 0):
-                    self.running = False
-                    print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+                if self.lock_delay_start is None:
+                    self.lock_delay_start = current_time
+                elif current_time - self.lock_delay_start >= self.LockDelay:
+                    if not self.lock_delay_reset:
+                        self.lock_piece()
+                    else:
+                        self.lock_delay_start = current_time  # Reset the timer if there was a recent move
 
             self.last_gravity_time = current_time
+
 
 
 
@@ -314,7 +328,7 @@ class Game:
             self.update()
             self.draw()
             self.clock.tick(240)  # Cap the frame rate at 240 FPS
-
+            
 if __name__ == "__main__":
     game = Game()
     game.game_loop()
