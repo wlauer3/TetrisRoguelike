@@ -24,6 +24,8 @@ class Game:
         self.offset_x = (self.screen_width - self.board_pixel_width) // 2
         self.offset_y = (self.screen_height - self.board_pixel_height) // 2
         self.delay = 0
+        self.score = 0  # Initialize the score attribute
+
 
         self.board = Board(self.screen)
         self.bag = []
@@ -187,11 +189,11 @@ class Game:
         while self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
         self.lock_piece()  # Lock the piece immediately on hard drop
-        
+
         # Check if the piece is in row 23 or higher
         if self.current_piece.y >= 22:
             self.running = False
-            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
             return
 
         lines_cleared = self.board.clear_lines()
@@ -201,8 +203,7 @@ class Game:
 
         if not self.board.can_move(self.current_piece, 0, 0):
             self.running = False
-            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
-
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
 
 
     def hold_piece(self):
@@ -213,16 +214,32 @@ class Game:
             self.current_piece = self.new_piece()
         else:
             self.current_piece, self.held_piece = self.held_piece, self.current_piece
-        self.current_piece.x = self.board_width // 2 - len(self.current_piece.shape[0]) // 2
-        self.current_piece.y = -2  # Start the piece in the hidden rows
+            self.current_piece.x = self.board_width // 2 - len(self.current_piece.shape[0]) // 2
+            self.current_piece.y = 2  # Start the piece in the hidden rows
+            self.current_piece.current_state = 0  # Reset to original state
+            self.current_piece.shape = self.current_piece.states[0]  # Update the shape
         self.can_hold = False
         self.lock_delay_start = None  # Reset lock delay timer on hold
         self.lock_delay_reset = True  # Indicate that lock delay should be reset
 
+
     def lock_piece(self):
         self.board.add_piece(self.current_piece)
         lines_cleared = self.board.clear_lines()
+        
+        if lines_cleared == 1:
+            self.score += 100
+        elif lines_cleared == 2:
+            self.score += 200
+        elif lines_cleared == 3:
+            self.score += 400
+        elif lines_cleared == 4:
+            self.score += 800
+
         self.lines_cleared += lines_cleared
+        # Adjust gravity every 10 lines
+        if self.lines_cleared // 10 > (self.lines_cleared - lines_cleared) // 10:
+            self.gravity = max(100, self.gravity - 50)  # Decrease gravity interval, minimum 100ms
         self.current_piece = self.new_piece()
         self.can_hold = True
         self.lock_delay_start = None  # Reset the lock delay timer for the new piece
@@ -230,7 +247,8 @@ class Game:
 
         if not self.board.can_move(self.current_piece, 0, 0):
             self.running = False
-            print(f"Game Over! Your score: {self.lines_cleared} lines cleared")
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
+
 
     def update(self):
         current_time = pygame.time.get_ticks()
@@ -247,6 +265,20 @@ class Game:
                         self.lock_piece()
                     else:
                         self.lock_delay_start = current_time  # Reset the timer if there was a recent move
+
+            self.last_gravity_time = current_time
+
+        # Additional check for soft drop lock
+        if not self.board.can_move(self.current_piece, 0, 1):
+            if self.lock_delay_start is None:
+                self.lock_delay_start = current_time
+            elif current_time - self.lock_delay_start >= self.LockDelay:
+                if not self.lock_delay_reset:
+                    self.lock_piece()
+                else:
+                    self.lock_delay_start = current_time  # Reset the timer if there was a recent move
+                    if (self.board.can_move(self.current_piece, 0, 1) == False):
+                        self.lock_piece()
 
             self.last_gravity_time = current_time
 
@@ -287,11 +319,24 @@ class Game:
 
         self.draw_held_piece()
 
-        score_text = f"Lines Cleared: {self.lines_cleared}"
+        # Draw score, lines cleared, and level on the right side of the board
+        level = self.lines_cleared // 10 + 1
+        score_text = f"Lines Cleared: {self.lines_cleared}\nLevel: {level}"
         font = pygame.font.Font(None, 36)
-        text = font.render(score_text, True, (0, 0, 0))  # Render text with black color
-        text_rect = text.get_rect(center=(self.screen_width // 2, self.offset_y + self.board_pixel_height + 20))
-        self.screen.blit(text, text_rect)
+        lines = score_text.split('\n')
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(self.screen_width - 100, self.offset_y + i * 40))
+            self.screen.blit(text, text_rect)
+
+        # Draw ARR, DAS, Gravity, and LockTime on the left side of the board
+        current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
+        left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.gravity}\nLockTime: {current_lock_time}"
+        lines = left_text.split('\n')
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(topleft=(10, 200 + i * 40))
+            self.screen.blit(text, text_rect)
 
         pygame.display.update()
 
