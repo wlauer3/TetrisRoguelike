@@ -38,9 +38,9 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.ARR = 50  # Auto Repeat Rate 
+        self.ARR = 32  # Auto Repeat Rate 
         self.gravity = 500  # Gravity interval 
-        self.DAS = 15  # Delayed Auto Shift 
+        self.DAS = 68  # Delayed Auto Shift 
         self.LockDelay = 500 # Time piece is added to board upon last action
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
@@ -136,9 +136,9 @@ class Game:
                 sys.exit()
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
-                    self.rotate_clockwise()
+                    self.rotate_piece(reverse=False)
                 elif event.key == K_DOWN:
-                    self.rotate_counterclockwise()
+                    self.rotate_piece(reverse=True)
                 elif event.key == K_SPACE:
                     self.hard_drop()
                 elif event.key == K_c:
@@ -165,9 +165,14 @@ class Game:
             self.current_piece.y += 1
 
     def rotate_piece(self, reverse=False):
+        self.lock_delay_start = None
         initial_state = self.current_piece.current_state
-        self.current_piece.rotate(reverse)
+        if reverse:
+            self.current_piece.current_state = (self.current_piece.current_state - 1) % len(self.current_piece.states)
+        else:
+            self.current_piece.current_state = (self.current_piece.current_state + 1) % len(self.current_piece.states)
         final_state = self.current_piece.current_state
+        self.current_piece.shape = self.current_piece.states[self.current_piece.current_state]
 
         kicks = wallkicks.get_wall_kicks(self.current_piece.type, initial_state, final_state)
 
@@ -176,14 +181,11 @@ class Game:
                 self.current_piece.x += x_offset
                 self.current_piece.y += y_offset
                 return
+
         # If no valid kicks, revert to original state
-        self.current_piece.rotate(not reverse)
+        self.current_piece.current_state = initial_state
+        self.current_piece.shape = self.current_piece.states[self.current_piece.current_state]
 
-    def rotate_clockwise(self):
-        self.rotate_piece(reverse=False)
-
-    def rotate_counterclockwise(self):
-        self.rotate_piece(reverse=True)
 
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):

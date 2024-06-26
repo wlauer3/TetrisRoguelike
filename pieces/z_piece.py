@@ -29,25 +29,6 @@ class ZPiece:
         self.color = (255, 0, 0)  # RED
         self.type = 'Z'
 
-    def rotate(self, reverse=False, board=None):
-        initial_state = self.current_state
-        if reverse:
-            self.current_state = (self.current_state - 1) % len(self.states)
-        else:
-            self.current_state = (self.current_state + 1) % len(self.states)
-        self.shape = self.states[self.current_state]
-
-        if board:
-            kicks = wallkicks.get_wall_kicks(self.type, initial_state, self.current_state)
-            for x_offset, y_offset in kicks:
-                if board.can_move(self, x_offset, y_offset):
-                    self.x += x_offset
-                    self.y += y_offset
-                    return
-            # If no valid kicks, revert to original state
-            self.current_state = initial_state
-            self.shape = self.states[self.current_state]
-
     def draw(self, screen, offset_x, offset_y):
         for y, row in enumerate(self.shape):
             for x, cell in enumerate(row):

@@ -17,9 +17,6 @@ class OPiece:
         self.cell_size = Config.CELL_SIZE
         self.color = (255,255,0)  # YELLOW
         self.type = 'O'
-    
-    def rotate(self, reverse=False, board=None):
-        pass
 
     def draw(self, screen, offset_x, offset_y):
         for y, row in enumerate(self.shape):
