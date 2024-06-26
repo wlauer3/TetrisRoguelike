@@ -7,6 +7,7 @@ from random import choice
 from config import Config
 import wallkicks
 import random
+from score_manager import ScoreManager
 
 class Game:
     def __init__(self):
@@ -26,7 +27,7 @@ class Game:
         self.delay = 0
         self.score = 0  # Initialize the score attribute
 
-
+        self.score_manager = ScoreManager()
         self.board = Board(self.screen)
         self.bag = []
         self.last_piece = None
@@ -186,7 +187,6 @@ class Game:
         self.current_piece.current_state = initial_state
         self.current_piece.shape = self.current_piece.states[self.current_piece.current_state]
 
-
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
@@ -207,7 +207,6 @@ class Game:
             self.running = False
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
 
-
     def hold_piece(self):
         if not self.can_hold:
             return
@@ -224,24 +223,15 @@ class Game:
         self.lock_delay_start = None  # Reset lock delay timer on hold
         self.lock_delay_reset = True  # Indicate that lock delay should be reset
 
-
     def lock_piece(self):
         self.board.add_piece(self.current_piece)
         lines_cleared = self.board.clear_lines()
-        
-        if lines_cleared == 1:
-            self.score += 100
-        elif lines_cleared == 2:
-            self.score += 200
-        elif lines_cleared == 3:
-            self.score += 400
-        elif lines_cleared == 4:
-            self.score += 800
 
-        self.lines_cleared += lines_cleared
-        # Adjust gravity every 10 lines
-        if self.lines_cleared // 10 > (self.lines_cleared - lines_cleared) // 10:
-            self.gravity = max(100, self.gravity - 50)  # Decrease gravity interval, minimum 100ms
+        self.score_manager.add_lines_cleared(lines_cleared)
+        self.score = self.score_manager.get_score()
+        self.lines_cleared = self.score_manager.get_lines_cleared()
+        self.gravity = self.score_manager.get_gravity()
+        
         self.current_piece = self.new_piece()
         self.can_hold = True
         self.lock_delay_start = None  # Reset the lock delay timer for the new piece
@@ -251,6 +241,23 @@ class Game:
             self.running = False
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
 
+    def draw_info(self):
+        level = self.lines_cleared // 10 + 1
+        score_text = f"Score: {self.score}\nLines Cleared: {self.lines_cleared}\nLevel: {level}"
+        font = pygame.font.Font(None, 36)
+        lines = score_text.split('\n')
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(self.screen_width - 100, self.offset_y + i * 40))
+            self.screen.blit(text, text_rect)
+
+        current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
+        left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.gravity}\nLockTime: {current_lock_time}"
+        lines = left_text.split('\n')
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(topleft=(10, 200 + i * 40))
+            self.screen.blit(text, text_rect)
 
     def update(self):
         current_time = pygame.time.get_ticks()
@@ -284,12 +291,10 @@ class Game:
 
             self.last_gravity_time = current_time
 
-
-
-
     def draw(self):
         self.screen.fill(self.background_color)
 
+        # Draw the board grid
         for y in range(2, self.board.height):  # Skip the top 2 rows
             for x, cell in enumerate(self.board.grid[y]):
                 if cell:
@@ -297,8 +302,10 @@ class Game:
                                     (self.offset_x + x * self.cell_size,
                                     self.offset_y + (y - 2) * self.cell_size,  # Adjust for hidden rows
                                     self.cell_size, self.cell_size))
+        
         self.draw_ghost_piece()
 
+        # Draw the current piece
         for y, row in enumerate(self.current_piece.shape):
             for x, cell in enumerate(row):
                 if cell:
@@ -320,28 +327,9 @@ class Game:
                         (self.offset_x + self.board_pixel_width, self.offset_y + self.board_pixel_height), 4)
 
         self.draw_held_piece()
-
-        # Draw score, lines cleared, and level on the right side of the board
-        level = self.lines_cleared // 10 + 1
-        score_text = f"Lines Cleared: {self.lines_cleared}\nLevel: {level}"
-        font = pygame.font.Font(None, 36)
-        lines = score_text.split('\n')
-        for i, line in enumerate(lines):
-            text = font.render(line, True, (0, 0, 0))
-            text_rect = text.get_rect(center=(self.screen_width - 100, self.offset_y + i * 40))
-            self.screen.blit(text, text_rect)
-
-        # Draw ARR, DAS, Gravity, and LockTime on the left side of the board
-        current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
-        left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.gravity}\nLockTime: {current_lock_time}"
-        lines = left_text.split('\n')
-        for i, line in enumerate(lines):
-            text = font.render(line, True, (0, 0, 0))
-            text_rect = text.get_rect(topleft=(10, 200 + i * 40))
-            self.screen.blit(text, text_rect)
+        self.draw_info()
 
         pygame.display.update()
-
 
     def draw_ghost_piece(self):
         ghost_piece = self.current_piece.copy()
@@ -357,7 +345,6 @@ class Game:
                                         (self.offset_x + (ghost_piece.x + x) * self.cell_size,
                                         self.offset_y + draw_y * self.cell_size,
                                         self.cell_size, self.cell_size))
-
 
     def draw_held_piece(self):
         if self.held_piece:
@@ -379,3 +366,4 @@ class Game:
 if __name__ == "__main__":
     game = Game()
     game.game_loop()
+ 
