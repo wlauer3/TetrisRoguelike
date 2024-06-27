@@ -1,1 +1,1 @@
-This project is not a tetris clone yet, the tetris guidelines are being implemented (probably incorrectly) as I progress 
+Tetris clone using the SRS (super rotation sytem) as defined in The Tetris Guidelines on the Tetris Wiki. also some other wacky features
