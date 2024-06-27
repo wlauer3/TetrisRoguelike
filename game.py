@@ -216,7 +216,7 @@ class Game:
         else:
             self.current_piece, self.held_piece = self.held_piece, self.current_piece
             self.current_piece.x = self.board_width // 2 - len(self.current_piece.shape[0]) // 2
-            self.current_piece.y = 2  # Start the piece in the hidden rows
+            self.current_piece.y = 0  # Start the piece in the hidden rows
             self.current_piece.current_state = 0  # Reset to original state
             self.current_piece.shape = self.current_piece.states[0]  # Update the shape
         self.can_hold = False
@@ -237,9 +237,9 @@ class Game:
         self.lock_delay_start = None  # Reset the lock delay timer for the new piece
         self.lock_delay_reset = False  # Reset the lock delay reset flag
 
-        if not self.board.can_move(self.current_piece, 0, 0):
+        if any(self.board.grid[y][x] != 0 for y in range(1) for x in range(self.board.width)):
             self.running = False
-            print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
+            print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score_manager.get_score()}")
 
     def draw_info(self):
         level = self.lines_cleared // 10 + 1
@@ -295,7 +295,7 @@ class Game:
         self.screen.fill(self.background_color)
 
         # Draw the board grid
-        for y in range(2, self.board.height):  # Skip the top 2 rows
+        for y in range(0, self.board.height):  # Skip the top 2 rows
             for x, cell in enumerate(self.board.grid[y]):
                 if cell:
                     pygame.draw.rect(self.screen, (128, 128, 128),
