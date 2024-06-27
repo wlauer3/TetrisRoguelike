@@ -3,6 +3,7 @@ class ScoreManager:
         self.lines_cleared = 0
         self.score = 0
         self.gravity = 500  # Gravity at level 0
+        self.adjusted_gravity = False
 
     def add_lines_cleared(self, lines):
         self.lines_cleared += lines
@@ -22,7 +23,11 @@ class ScoreManager:
     def adjust_gravity(self):
         if (self.lines_cleared != 0):
             if self.lines_cleared % 10 == 0:
-                self.gravity = max(50, self.gravity - 50)  # Decrease gravity interval but not below 100ms
+                if self.adjusted_gravity == False:
+                    self.gravity = max(50, self.gravity - 50)  # Decrease gravity interval but not below 100ms
+                    self.adjusted_gravity = True
+            else: 
+                self.adjusted_gravity = False
 
     def get_gravity(self):
         return self.gravity
