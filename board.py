@@ -16,12 +16,19 @@ class Board:
                     if piece.y + y >= 0:  # Prevent writing to negative indexes
                         self.grid[piece.y + y][piece.x + x] = cell
 
-    def clear_lines(self):
+    def clear_lines(self, score_manager):
         new_grid = [row for row in self.grid if not all(row)]
         lines_cleared = self.height - len(new_grid)
         new_grid = [[0 for _ in range(self.width)] for _ in range(lines_cleared)] + new_grid
         self.grid = new_grid
+        
+        # Add the cleared lines to the score manager
+        if lines_cleared > 0:
+            score_manager.add_lines_cleared(lines_cleared)
+        
         return lines_cleared
+
+
 
     def can_move(self, piece, dx, dy):
         for y, row in enumerate(piece.shape):

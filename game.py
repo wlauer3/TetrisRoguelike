@@ -8,6 +8,7 @@ from config import Config
 import wallkicks
 import random
 from score_manager import ScoreManager
+from level_manager import LevelManager
 
 class Game:
     def __init__(self):
@@ -26,8 +27,9 @@ class Game:
         self.offset_y = (self.screen_height - self.board_pixel_height) // 2
         self.delay = 0
         self.score = 0  # Initialize the score attribute
-
-        self.score_manager = ScoreManager()
+        
+        self.level_manager = LevelManager()
+        self.score_manager = ScoreManager(self.level_manager)
         self.board = Board(self.screen)
         self.bag = []
         self.last_piece = None
@@ -198,7 +200,7 @@ class Game:
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
             return
 
-        lines_cleared = self.board.clear_lines()
+        lines_cleared = self.board.clear_lines(self.score_manager)
         self.lines_cleared += lines_cleared
         self.current_piece = self.new_piece()
         self.can_hold = True
@@ -225,9 +227,8 @@ class Game:
 
     def lock_piece(self):
         self.board.add_piece(self.current_piece)
-        lines_cleared = self.board.clear_lines()
+        self.board.clear_lines(self.score_manager)
 
-        self.score_manager.add_lines_cleared(lines_cleared)
         self.score = self.score_manager.get_score()
         self.lines_cleared = self.score_manager.get_lines_cleared()
         self.gravity = self.score_manager.get_gravity()
@@ -242,22 +243,32 @@ class Game:
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score_manager.get_score()}")
 
     def draw_info(self):
-        level = self.lines_cleared // 10 + 1
-        score_text = f"Score: {self.score}\nLines Cleared: {self.lines_cleared}\nLevel: {level}"
+        level = self.level_manager.get_level()
+        score_text = f"Score: {self.score_manager.get_score()}\nLines Cleared: {self.score_manager.get_lines_cleared()}\nLevel: {level}"
         font = pygame.font.Font(None, 36)
+        
+        # Split the score_text into separate lines
         lines = score_text.split('\n')
+        
         for i, line in enumerate(lines):
             text = font.render(line, True, (0, 0, 0))
+            # Adjust the text_rect to position each line correctly
             text_rect = text.get_rect(center=(self.screen_width - 100, self.offset_y + i * 40))
             self.screen.blit(text, text_rect)
 
         current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
-        left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.gravity}\nLockTime: {current_lock_time}"
+        left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.score_manager.get_gravity()}\nLockTime: {current_lock_time}"
+        
+        # Split the left_text into separate lines
         lines = left_text.split('\n')
+        
         for i, line in enumerate(lines):
             text = font.render(line, True, (0, 0, 0))
+            # Adjust the text_rect to position each line correctly
             text_rect = text.get_rect(topleft=(10, 200 + i * 40))
             self.screen.blit(text, text_rect)
+
+        pygame.display.update()
 
     def update(self):
         current_time = pygame.time.get_ticks()
