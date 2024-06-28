@@ -9,6 +9,7 @@ import wallkicks
 import random
 from score_manager import ScoreManager
 from level_manager import LevelManager
+from shop import Shop
 
 class Game:
     def __init__(self):
@@ -30,7 +31,7 @@ class Game:
         
         self.level_manager = LevelManager()
         self.score_manager = ScoreManager(self.level_manager)
-        self.board = Board(self.screen)
+        self.board = Board(self.screen, self.offset_x, self.offset_y)
         self.bag = []
         self.last_piece = None
         self.current_piece = self.new_piece()
@@ -58,6 +59,9 @@ class Game:
         self.key_initial_time = {K_LEFT: 0, K_RIGHT: 0, K_z: 0}
         self.key_delay_over = {K_LEFT: False, K_RIGHT: False, K_z: False}
 
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.shop = Shop(self.screen, self.screen_width, self.screen_height, self.board)
+
         self.game_loop()
 
     def initialize_bag(self):
@@ -82,6 +86,7 @@ class Game:
         return piece_instance
     
     def handle_input(self):
+        level = self.level_manager.get_level()
         keys = pygame.key.get_pressed()
         current_time = pygame.time.get_ticks()
 
@@ -138,14 +143,19 @@ class Game:
                 pygame.quit()
                 sys.exit()
             elif event.type == KEYDOWN:
-                if event.key == K_UP:
-                    self.rotate_piece(reverse=False)
-                elif event.key == K_DOWN:
-                    self.rotate_piece(reverse=True)
-                elif event.key == K_SPACE:
-                    self.hard_drop()
-                elif event.key == K_c:
-                    self.hold_piece()
+                if level in [2, 6, 11, 16, 21, 26]:
+                    if event.key in [K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_c]:
+                        self.shop.handle_shop_interaction(self.current_piece, event)
+                else:
+                    if event.key == K_UP:
+                        self.rotate_piece(reverse=False)
+                    elif event.key == K_DOWN:
+                        self.rotate_piece(reverse=True)
+                    elif event.key == K_SPACE:
+                        self.hard_drop()
+                    elif event.key == K_c:
+                        self.hold_piece()
+
 
     def handle_movement(self, movement_func, initial=False):
         current_time = pygame.time.get_ticks()
@@ -244,6 +254,17 @@ class Game:
 
     def draw_info(self):
         level = self.level_manager.get_level()
+        self.draw_score_and_level()
+        
+        if level in [2, 6, 11, 16, 21, 26]:
+            self.shop.draw_shop()
+        else:
+            self.draw_handling_info()
+
+        pygame.display.update()
+
+    def draw_score_and_level(self):
+        level = self.level_manager.get_level()
         score_text = f"Score: {self.score_manager.get_score()}\nLines Cleared: {self.score_manager.get_lines_cleared()}\nLevel: {level}"
         font = pygame.font.Font(None, 36)
         
@@ -256,11 +277,14 @@ class Game:
             text_rect = text.get_rect(center=(self.screen_width - 100, self.offset_y + i * 40))
             self.screen.blit(text, text_rect)
 
+    def draw_handling_info(self):
         current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
         left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.score_manager.get_gravity()}\nLockTime: {current_lock_time}"
         
         # Split the left_text into separate lines
         lines = left_text.split('\n')
+        
+        font = pygame.font.Font(None, 36)
         
         for i, line in enumerate(lines):
             text = font.render(line, True, (0, 0, 0))
@@ -268,16 +292,33 @@ class Game:
             text_rect = text.get_rect(topleft=(10, 200 + i * 40))
             self.screen.blit(text, text_rect)
 
-        pygame.display.update()
-
     def update(self):
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_gravity_time >= self.gravity:
-            if self.board.can_move(self.current_piece, 0, 1):
-                self.current_piece.y += 1
-                self.lock_delay_start = None  # Reset lock delay timer on movement
-                self.lock_delay_reset = False  # Piece moved down, reset should not apply
-            else:
+        level = self.level_manager.get_level()
+
+        if level in [2, 6, 11, 16, 21, 26]:
+            # Handle shop phase
+            self.shop.handle_shop_interaction(self.current_piece)
+        else:
+            # Regular game update logic
+            if current_time - self.last_gravity_time >= self.score_manager.get_gravity():
+                if self.board.can_move(self.current_piece, 0, 1):
+                    self.current_piece.y += 1
+                    self.lock_delay_start = None  # Reset lock delay timer on movement
+                    self.lock_delay_reset = False  # Piece moved down, reset should not apply
+                else:
+                    if self.lock_delay_start is None:
+                        self.lock_delay_start = current_time
+                    elif current_time - self.lock_delay_start >= self.lock_delay:
+                        if not self.lock_delay_reset:
+                            self.lock_piece()
+                        else:
+                            self.lock_delay_start = current_time  # Reset the timer if there was a recent move
+
+                self.last_gravity_time = current_time
+
+            # Additional check for soft drop lock
+            if not self.board.can_move(self.current_piece, 0, 1):
                 if self.lock_delay_start is None:
                     self.lock_delay_start = current_time
                 elif current_time - self.lock_delay_start >= self.LockDelay:
@@ -285,22 +326,10 @@ class Game:
                         self.lock_piece()
                     else:
                         self.lock_delay_start = current_time  # Reset the timer if there was a recent move
+                        if not self.board.can_move(self.current_piece, 0, 1):
+                            self.lock_piece()
 
-            self.last_gravity_time = current_time
-
-        # Additional check for soft drop lock
-        if not self.board.can_move(self.current_piece, 0, 1):
-            if self.lock_delay_start is None:
-                self.lock_delay_start = current_time
-            elif current_time - self.lock_delay_start >= self.LockDelay:
-                if not self.lock_delay_reset:
-                    self.lock_piece()
-                else:
-                    self.lock_delay_start = current_time  # Reset the timer if there was a recent move
-                    if (self.board.can_move(self.current_piece, 0, 1) == False):
-                        self.lock_piece()
-
-            self.last_gravity_time = current_time
+                self.last_gravity_time = current_time
 
     def draw(self):
         self.screen.fill(self.background_color)

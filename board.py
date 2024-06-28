@@ -1,14 +1,17 @@
 import pygame
 from config import Config
+SHOP_WIDTH = 6
 
 class Board:
-    def __init__(self, screen):
+    def __init__(self, screen, offset_x, offset_y):
         self.width = Config.BOARD_WIDTH
         self.height = Config.BOARD_HEIGHT
         self.cell_size = Config.CELL_SIZE
         self.screen = screen
-        self.grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
-
+        self.offset_x = offset_x
+        self.offset_y = offset_y
+        self.grid = [[0] * (self.width + SHOP_WIDTH) for _ in range(self.height)]  # Adjusted grid width to include shop
+    
     def add_piece(self, piece):
         for y, row in enumerate(piece.shape):
             for x, cell in enumerate(row):
@@ -36,11 +39,12 @@ class Board:
                 if cell:
                     new_x = piece.x + x + dx
                     new_y = piece.y + y + dy
-                    if new_x < 0 or new_x >= self.width or new_y >= self.height:
+                    if new_x < 0 or new_x >= self.width + SHOP_WIDTH or new_y >= self.height:
                         return False
-                    if new_y >= 0 and self.grid[new_y][new_x]:  # Check only visible cells
+                    if new_y >= 0 and self.grid[new_y][new_x] != 0:
                         return False
         return True
+
 
     def draw(self, offset_x, offset_y):
         for y in range(2, self.height):  # Skip the top 2 rows
