@@ -48,8 +48,7 @@ class Game:
         self.last_move_time = pygame.time.get_ticks()
         self.last_gravity_time = pygame.time.get_ticks()
         self.lock_delay_start = None  # Timer for lock delay
-        self.lock_delay_reset = False  # Flag to reset the lock delay on movement
-
+        self.lock_delay_reset = False  # Flag to reset the lock delay on movements
 
         self.background_color = (200, 200, 200)  # Light gray background color
 
