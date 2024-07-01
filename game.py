@@ -254,7 +254,7 @@ class Game:
             for _ in range(3):  # Number of shop items available
                 slot_grid = [[0 for _ in range(4)] for _ in range(4)]  # Create empty slot grids
                 self.shop_slot_grids.append(slot_grid)
-                y_position = self.offset_y + random.randint(3, 10) * self.cell_size  # Random Y position for each slot
+                y_position = self.offset_y + random.randint(4, 18) * self.cell_size  # Random Y position for each slot
                 self.shop_slot_y_positions.append(y_position)
             self.shopdrawn = True
 
@@ -389,8 +389,9 @@ class Game:
 
     def draw_info(self):
         level = self.level_manager.get_level()
-        score_text = f"Score: {self.score_manager.get_score()}\nLines Cleared: {self.score_manager.get_lines_cleared()}\nLevel: {level}"
-        font = pygame.font.Font(None, 36)
+        current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
+        score_text = f"Score: {self.score_manager.get_score()}\nLines Cleared: {self.score_manager.get_lines_cleared()}\nLevel: {level}\nARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.score_manager.get_gravity()}\nLockTime: {current_lock_time}"
+        font = pygame.font.Font(None, 30)
         
         # Split the score_text into separate lines
         lines = score_text.split('\n')
@@ -398,27 +399,16 @@ class Game:
         for i, line in enumerate(lines):
                 text = font.render(line, True, (0, 0, 0))
                 # Adjust the text_rect to position each line correctly
-                text_rect = text.get_rect(topleft=(self.offset_y, self.cell_size + i * 40))
+                text_rect = text.get_rect(topleft=(self.cell_size, 2 * self.cell_size + self.offset_y + i * 40))
                 self.screen.blit(text, text_rect)
 
         if level in [1, 6, 11, 16, 21, 26]:
             self.draw_shop()
-            self
             self.shop_phase = True
         else:
             self.shop_phase = False
-            self.shopdrawn = False
-            current_lock_time = 0 if self.lock_delay_start is None else max(0, self.LockDelay - (pygame.time.get_ticks() - self.lock_delay_start))
-            left_text = f"ARR: {self.ARR}\nDAS: {self.DAS}\nGravity: {self.score_manager.get_gravity()}\nLockTime: {current_lock_time}"
-            
-            # Split the left_text into separate lines
-            lines = left_text.split('\n')
-            
-            for i, line in enumerate(lines):
-                text = font.render(line, True, (0, 0, 0))
-                # Adjust the text_rect to position each line correctly
-                text_rect = text.get_rect(topleft=(self.offset_y + 5 * self.cell_size, self.cell_size + i * 40))
-                self.screen.blit(text, text_rect)
+
+        self.shopdrawn = False
 
         pygame.display.update()
     
