@@ -29,7 +29,6 @@ class Game:
         self.score = 0  # Initialize the score attribute
         self.shop_slots = [1, 2, 3, 4, 5, 6, 7, 8]  # Define slots
         self.shop_slot_grids = []
-        self.shopdrawn = False
         self.shop_phase = False
         self.initialize_shop_slots()
         
@@ -160,15 +159,15 @@ class Game:
             self.lock_delay_reset = True  # Indicate that lock delay should be reset
 
     def move_left(self):
-        if self.board.can_move(self.current_piece, -1, 0):
+        if self.board.can_move(self.current_piece, -1, 0, self.shop_phase):
             self.current_piece.x -= 1
 
     def move_right(self):
-        if self.board.can_move(self.current_piece, 1, 0):
+        if self.board.can_move(self.current_piece, 1, 0, self.shop_phase):
             self.current_piece.x += 1
 
     def move_down(self):
-        if self.board.can_move(self.current_piece, 0, 1):
+        if self.board.can_move(self.current_piece, 0, 1, self.shop_phase):
             self.current_piece.y += 1
 
     # tetris.py or the main file
@@ -186,7 +185,7 @@ class Game:
         kicks = wallkicks.get_wall_kicks(self.current_piece.type, initial_state, final_state)
 
         for x_offset, y_offset in kicks:
-            if self.board.can_move(self.current_piece, x_offset, y_offset):
+            if self.board.can_move(self.current_piece, x_offset, y_offset, self.shop_phase):
                 self.current_piece.x += x_offset
                 self.current_piece.y += y_offset
                 print(f"Rotation successful with wall kick offset: ({x_offset}, {y_offset})")
@@ -198,7 +197,7 @@ class Game:
         print("Rotation reverted to original state")
 
     def hard_drop(self):
-        while self.board.can_move(self.current_piece, 0, 1):
+        while self.board.can_move(self.current_piece, 0, 1, self.shop_phase):
             self.current_piece.y += 1
         self.lock_piece()  # Lock the piece immediately on hard drop
 
@@ -213,7 +212,7 @@ class Game:
         self.current_piece = self.new_piece()
         self.can_hold = True
 
-        if not self.board.can_move(self.current_piece, 0, 0):
+        if not self.board.can_move(self.current_piece, 0, 0, self.shop_phase):
             self.running = False
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score}")
 
@@ -251,7 +250,7 @@ class Game:
             print(f"Game Over! Your score: {self.lines_cleared} lines cleared, Total Score: {self.score_manager.get_score()}")
 
     def initialize_shop_slots(self):
-        if not self.shopdrawn:
+        if not self.shop_phase:
             random.shuffle(self.shop_slots)
             self.shop_slot_grids = []
             self.shop_slot_y_positions = []  # List to store the Y positions of the slots
@@ -260,7 +259,7 @@ class Game:
                 self.shop_slot_grids.append(slot_grid)
                 y_position = self.offset_y + random.randint(4, 18) * self.cell_size  # Random Y position for each slot
                 self.shop_slot_y_positions.append(y_position)
-            self.shopdrawn = True
+            self.shop_phase = True
 
     def draw_shop(self):
         xpos = self.board.width * self.cell_size + self.offset_x + self.cell_size  # Adjust xpos to be next to the main board
@@ -412,14 +411,12 @@ class Game:
         else:
             self.shop_phase = False
 
-        self.shopdrawn = False
-
         pygame.display.update()
     
     def update(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_gravity_time >= self.gravity:
-            if self.board.can_move(self.current_piece, 0, 1):
+            if self.board.can_move(self.current_piece, 0, 1, self.shop_phase):
                 self.current_piece.y += 1
                 self.lock_delay_start = None  # Reset lock delay timer on movement
                 self.lock_delay_reset = False  # Piece moved down, reset should not apply
@@ -435,7 +432,7 @@ class Game:
             self.last_gravity_time = current_time
 
         # Additional check for soft drop lock
-        if not self.board.can_move(self.current_piece, 0, 1):
+        if not self.board.can_move(self.current_piece, 0, 1, self.shop_phase):
             if self.lock_delay_start is None:
                 self.lock_delay_start = current_time
             elif current_time - self.lock_delay_start >= self.LockDelay:
@@ -443,14 +440,13 @@ class Game:
                     self.lock_piece()
                 else:
                     self.lock_delay_start = current_time  # Reset the timer if there was a recent move
-                    if (self.board.can_move(self.current_piece, 0, 1) == False):
+                    if (self.board.can_move(self.current_piece, 0, 1, self.shop_phase) == False):
                         self.lock_piece()
 
             self.last_gravity_time = current_time
 
     def draw(self):
         self.screen.fill(self.background_color)
-
         # Draw the board grid
         for y in range(0, self.board.height):  # Skip the top 2 rows
             for x, cell in enumerate(self.board.grid[y]):
@@ -467,10 +463,15 @@ class Game:
             for x, cell in enumerate(row):
                 if cell:
                     draw_y = self.current_piece.y + y - 2
-                    pygame.draw.rect(self.screen, self.current_piece.color,
-                                    (self.offset_x + (self.current_piece.x + x) * self.cell_size,
-                                    self.offset_y + draw_y * self.cell_size,
-                                    self.cell_size, self.cell_size))
+                    effective_width = self.board_width + (Config.SHOP_WIDTH if self.shop_phase else 0)
+                    draw_x = self.current_piece.x + x
+
+                    # Ensure that the piece is drawn within the bounds of the effective width
+                    if draw_x < effective_width:
+                        pygame.draw.rect(self.screen, self.current_piece.color,
+                                        (self.offset_x + draw_x * self.cell_size,
+                                        self.offset_y + draw_y * self.cell_size,
+                                        self.cell_size, self.cell_size))
 
         # Draw the three-sided border, leaving the top open
         pygame.draw.line(self.screen, (0, 0, 0), 
@@ -493,7 +494,7 @@ class Game:
 
     def draw_ghost_piece(self):
         ghost_piece = self.current_piece.copy()
-        while self.board.can_move(ghost_piece, 0, 1):
+        while self.board.can_move(ghost_piece, 0, 1, self.shop_phase):
             ghost_piece.y += 1
 
         for y, row in enumerate(ghost_piece.shape):
