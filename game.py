@@ -171,6 +171,8 @@ class Game:
         if self.board.can_move(self.current_piece, 0, 1):
             self.current_piece.y += 1
 
+    # tetris.py or the main file
+
     def rotate_piece(self, reverse=False):
         self.lock_delay_start = None
         initial_state = self.current_piece.current_state
@@ -187,11 +189,13 @@ class Game:
             if self.board.can_move(self.current_piece, x_offset, y_offset):
                 self.current_piece.x += x_offset
                 self.current_piece.y += y_offset
+                print(f"Rotation successful with wall kick offset: ({x_offset}, {y_offset})")
                 return
 
         # If no valid kicks, revert to original state
         self.current_piece.current_state = initial_state
         self.current_piece.shape = self.current_piece.states[self.current_piece.current_state]
+        print("Rotation reverted to original state")
 
     def hard_drop(self):
         while self.board.can_move(self.current_piece, 0, 1):
