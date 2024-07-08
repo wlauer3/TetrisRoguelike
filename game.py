@@ -242,11 +242,14 @@ class Game:
             random.shuffle(self.shop_slots)
             self.shop_slot_grids = []
             self.shop_slot_y_positions = []  # List to store the Y positions of the slots
+            self.shop_slot_y_cells = [] # store cell values for Y positions
             for _ in range(3):  # Number of shop items available
                 slot_grid = [[0 for _ in range(4)] for _ in range(4)]  # Create empty slot grids
                 self.shop_slot_grids.append(slot_grid)
                 y_position = self.offset_y + random.randint(4, 18) * self.cell_size  # Random Y position for each slot
+                y_cell = int((y_position - self.offset_y)/self.cell_size) + 2
                 self.shop_slot_y_positions.append(y_position)
+                self.shop_slot_y_cells.append(y_cell)
             self.shop_phase = True
 
     def draw_shop(self):
@@ -254,8 +257,6 @@ class Game:
 
         # Draw the slots
         for i in range(3):  # Number of shop items available
-            ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
-            self.draw_shop_slot(i, xpos, ypos)
             slot_width = 0
             slot_type = self.shop_slots[i]
             if slot_type == 1:
@@ -274,10 +275,19 @@ class Game:
                 slot_width = 2  # Width for the LPiece slot
             elif slot_type == 8:
                 slot_width = 2  # Width for the JPiece slot
-
+            if (i == 0):
+                slot = self.board.width + 3
+            if (i == 1):
+                slot = self.board.width + slot_width + 3
+                slot3 = slot
+            if (i == 2):
+                slot = slot3 + slot_width + 3
+            ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
+            self.draw_shop_slot(i, xpos, ypos, slot)
+            
             xpos += (slot_width * self.cell_size) + (1 * self.cell_size)  # Adjust spacing for next slot
 
-    def draw_shop_slot(self, index, xpos, ypos):
+    def draw_shop_slot(self, index, xpos, ypos, slot):
         slot_type = self.shop_slots[index]
         slot_grid = self.shop_slot_grids[index]
 
@@ -293,7 +303,7 @@ class Game:
               #                      self.cell_size, self.cell_size))
 
         if slot_type == 1:
-            self.draw_i_piece_slot(xpos, ypos)
+            self.draw_i_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 2:
             self.draw_o_piece_slot(xpos, ypos)
         elif slot_type == 3:
@@ -321,7 +331,18 @@ class Game:
                 return False
         return True
     
-    def draw_i_piece_slot(self, xpos, ypos):
+    def draw_i_piece_slot(self, xpos, ypos, slot, index):
+
+        self.board.grid[self.shop_slot_y_cells[index]][slot] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+1][slot] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+2][slot] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+3][slot] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+4][slot+1] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+3][slot+2] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+2][slot+2] = 1
+        self.board.grid[self.shop_slot_y_cells[index]+1][slot+2] = 1
+        self.board.grid[self.shop_slot_y_cells[index]][slot+2] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 4 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 4 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 4 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 4 * self.cell_size + ypos), (xpos + 1 * self.cell_size, ypos), 4)
