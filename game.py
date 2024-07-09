@@ -31,7 +31,8 @@ class Game:
         self.shop_slot_grids = []
         self.shop_phase = False
         self.initialize_shop_slots()
-        
+        self.shop_x_cells = [0, 0, 0]
+        self.shop_y_cells = [0, 0, 0]
         
         self.level_manager = LevelManager()
         self.score_manager = ScoreManager(self.level_manager)
@@ -244,7 +245,9 @@ class Game:
             random.shuffle(self.shop_slots)
             self.shop_slot_grids = []
             self.shop_slot_y_positions = []  # List to store the Y positions of the slots
-            self.shop_slot_y_cells = [] # store cell values for Y positions
+            self.shop_slot_y_cells = []
+            self.shop_x = []
+            self.shop_y = []
             for _ in range(3):  # Number of shop items available
                 slot_grid = [[0 for _ in range(4)] for _ in range(4)]  # Create empty slot grids
                 self.shop_slot_grids.append(slot_grid)
@@ -252,6 +255,8 @@ class Game:
                 y_cell = int((y_position - self.offset_y)/self.cell_size) + 2
                 self.shop_slot_y_positions.append(y_position)
                 self.shop_slot_y_cells.append(y_cell)
+                self.shop_y.append(y_cell)
+            self.shop_y_cells = self.shop_y
             self.shop_phase = True
 
     def draw_shop(self):
@@ -270,21 +275,24 @@ class Game:
             elif slot_type == 4:
                 slot_width = 2  # Width for JorLPiece Slot
             elif slot_type == 5:
-                slot_width = 2  # Width for the ZPiece slot
+                slot_width = 2  # Width for ZPiece slot
             elif slot_type == 6:
-                slot_width = 2  # Width for the SPiece slot
+                slot_width = 2  # Width for SPiece slot
             elif slot_type == 7:
-                slot_width = 2  # Width for the LPiece slot
+                slot_width = 2  # Width for LPiece slot
             elif slot_type == 8:
-                slot_width = 2  # Width for the JPiece slot
+                slot_width = 2  # Width for JPiece slot
             if (i == 0):
                 slot = self.board.width + 1
                 slot2 = slot_width
+                self.shop_x.append(slot)
             if (i == 1):
                 slot = self.board.width + slot2 + 3
                 slot3 = slot_width
+                self.shop_x.append(slot)
             if (i == 2):
                 slot = self.board.width + slot2 + slot3 + 5
+                self.shop_x.append(slot)
             ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
             self.draw_shop_slot(i, xpos, ypos, slot)
             
@@ -292,7 +300,6 @@ class Game:
 
     def draw_shop_slot(self, index, xpos, ypos, slot):
         slot_type = self.shop_slots[index]
-        slot_grid = self.shop_slot_grids[index]
 
         if slot_type == 1:
             self.draw_i_piece_slot(xpos, ypos, slot, index)
@@ -312,16 +319,56 @@ class Game:
             self.draw_j_piece_slot(xpos, ypos, slot, index)
 
         # Check if slot is fully occupied
-        if self.is_slot_filled(slot_grid):
-            self.shop_slot_grids.pop(index)
-            self.shop_slots.pop(index)
-            self.shop_slot_y_positions.pop(index)  # Remove the corresponding Y position
+        if self.is_slot_filled(index, self.shop_slots):
+            print(f"Slot filled")
 
-    def is_slot_filled(self, slot_grid):
-        for row in slot_grid:
-            if 0 in row:
-                return False
-        return True
+    def is_slot_filled(self, index, shop_slots):
+        slot_type = shop_slots[index]
+        if slot_type == 1:  # I piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] == 2)
+        if slot_type == 2:  # O piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2)
+        if slot_type == 3:  # T piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+3] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2)
+        if slot_type == 4:  # JorL piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+3][self.shop_x[index]+2] == 2)
+        if slot_type == 5:  # Z piece
+            return(self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2)
+        if slot_type == 6:  # S piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] == 2)
+        if slot_type == 7:  # L piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] == 2)
+        if slot_type == 8:  # J piece
+            return(self.board.grid[self.shop_y[index]][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]][self.shop_x[index]+2] == 2 and
+                   self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
+                   self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] == 2)
+        return False
     
     def draw_i_piece_slot(self, xpos, ypos, x, y):
 
@@ -448,12 +495,6 @@ class Game:
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1*self.cell_size, 3 * self.cell_size + ypos), (xpos + 1*self.cell_size, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1*self.cell_size, 1 * self.cell_size + ypos), (xpos + 2*self.cell_size, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2*self.cell_size, 1 * self.cell_size + ypos), (xpos + 2*self.cell_size, ypos), 4)
-
-    def update_shop(self):
-        self.board._mark_shop_shapes
-        for slot_grid in self.shop_slot_grids:
-            # Code to check and place piece into slot_grid if it fits
-            pass
 
     def draw_info(self):
         level = self.level_manager.get_level()
@@ -583,7 +624,6 @@ class Game:
         while self.running:
             self.handle_input()
             self.update()
-            self.update_shop()
             self.draw()
             self.clock.tick(240)  # Cap the frame rate at 240 FPS
             
