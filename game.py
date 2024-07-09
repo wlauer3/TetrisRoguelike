@@ -32,6 +32,7 @@ class Game:
         self.shop_phase = False
         self.initialize_shop_slots()
         
+        
         self.level_manager = LevelManager()
         self.score_manager = ScoreManager(self.level_manager)
         self.board = Board(self.screen, self.shop_phase)
@@ -47,6 +48,7 @@ class Game:
 
         self.ARR = 32  # Auto Repeat Rate 
         self.gravity = 500  # Gravity interval 
+        self.storeGrav = self.gravity
         self.DAS = 68  # Delayed Auto Shift 
         self.LockDelay = 500 # Time piece is added to board upon last action
         self.last_move_time = pygame.time.get_ticks()
@@ -246,7 +248,7 @@ class Game:
             for _ in range(3):  # Number of shop items available
                 slot_grid = [[0 for _ in range(4)] for _ in range(4)]  # Create empty slot grids
                 self.shop_slot_grids.append(slot_grid)
-                y_position = self.offset_y + random.randint(4, 18) * self.cell_size  # Random Y position for each slot
+                y_position = self.offset_y + random.randint(4, 17) * self.cell_size  # Random Y position for each slot
                 y_cell = int((y_position - self.offset_y)/self.cell_size) + 2
                 self.shop_slot_y_positions.append(y_position)
                 self.shop_slot_y_cells.append(y_cell)
@@ -276,48 +278,38 @@ class Game:
             elif slot_type == 8:
                 slot_width = 2  # Width for the JPiece slot
             if (i == 0):
-                slot = self.board.width + 3
+                slot = self.board.width + 1
+                slot2 = slot_width
             if (i == 1):
-                slot = self.board.width + slot_width + 3
-                slot3 = slot
+                slot = self.board.width + slot2 + 3
+                slot3 = slot_width
             if (i == 2):
-                slot = slot3 + slot_width + 3
+                slot = self.board.width + slot2 + slot3 + 5
             ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
             self.draw_shop_slot(i, xpos, ypos, slot)
             
-            xpos += (slot_width * self.cell_size) + (1 * self.cell_size)  # Adjust spacing for next slot
+            xpos += (slot_width * self.cell_size) + (2 * self.cell_size)  # Adjust spacing for next slot
 
     def draw_shop_slot(self, index, xpos, ypos, slot):
         slot_type = self.shop_slots[index]
         slot_grid = self.shop_slot_grids[index]
 
-        # Draw the slot grid
-        #for y in range(len(slot_grid)):
-         #   for x in range(len(slot_grid[y])):
-         #       pygame.draw.rect(self.screen, (0, 255, 0),
-            #                    (xpos + x * self.cell_size, ypos + y * self.cell_size,
-            #                    self.cell_size, self.cell_size), 1)
-             #   if slot_grid[y][x] != 0:
-             #       pygame.draw.rect(self.screen, (128, 128, 128),
-             #                       (xpos + x * self.cell_size, ypos + y * self.cell_size,
-              #                      self.cell_size, self.cell_size))
-
         if slot_type == 1:
             self.draw_i_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 2:
-            self.draw_o_piece_slot(xpos, ypos)
+            self.draw_o_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 3:
-            self.draw_t_piece_slot(xpos, ypos)
+            self.draw_t_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 4:
-            self.draw_jorl_piece_slot(xpos, ypos)
+            self.draw_jorl_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 5:
-            self.draw_z_piece_slot(xpos, ypos)
+            self.draw_z_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 6:
-            self.draw_s_piece_slot(xpos, ypos)
+            self.draw_s_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 7:
-            self.draw_l_piece_slot(xpos, ypos)
+            self.draw_l_piece_slot(xpos, ypos, slot, index)
         elif slot_type == 8:
-            self.draw_j_piece_slot(xpos, ypos)
+            self.draw_j_piece_slot(xpos, ypos, slot, index)
 
         # Check if slot is fully occupied
         if self.is_slot_filled(slot_grid):
@@ -331,28 +323,43 @@ class Game:
                 return False
         return True
     
-    def draw_i_piece_slot(self, xpos, ypos, slot, index):
+    def draw_i_piece_slot(self, xpos, ypos, x, y):
 
-        self.board.grid[self.shop_slot_y_cells[index]][slot] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+1][slot] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+2][slot] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+3][slot] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+4][slot+1] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+3][slot+2] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+2][slot+2] = 1
-        self.board.grid[self.shop_slot_y_cells[index]+1][slot+2] = 1
-        self.board.grid[self.shop_slot_y_cells[index]][slot+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+4][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+2] = 1
 
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 4 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 4 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 4 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 4 * self.cell_size + ypos), (xpos + 1 * self.cell_size, ypos), 4)
 
-    def draw_o_piece_slot(self, xpos, ypos):
+    def draw_o_piece_slot(self, xpos, ypos, x, y):
+
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+3] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 2 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 2 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 2 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 2 * self.cell_size + ypos), (xpos + 2 * self.cell_size, ypos), 4)
 
-    def draw_t_piece_slot(self, xpos, ypos):
+    def draw_t_piece_slot(self, xpos, ypos, x, y):
+
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+4] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 1 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 1 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 2 * self.cell_size + ypos), 4)
@@ -361,33 +368,81 @@ class Game:
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 1 * self.cell_size + ypos), (xpos + 3 * self.cell_size, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 3 * self.cell_size, 1 * self.cell_size + ypos), (xpos + 3 * self.cell_size, ypos), 4)
 
-    def draw_jorl_piece_slot(self, xpos, ypos):
-        pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 5 * self.cell_size + ypos), 4)
-        pygame.draw.line(self.screen, (0, 0, 0), (xpos, 5 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 5 * self.cell_size + ypos), 4)
-        pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 5 * self.cell_size + ypos), (xpos + 2 * self.cell_size, ypos), 4)
+    def draw_jorl_piece_slot(self, xpos, ypos, x, y):
 
-    def draw_z_piece_slot(self, xpos, ypos):
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x] = 1
+        
+        self.board.grid[self.shop_slot_y_cells[y]+4][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+4][x+2] = 1
+
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+3] = 1
+      
+        pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 4 * self.cell_size + ypos), 4)
+        pygame.draw.line(self.screen, (0, 0, 0), (xpos, 4 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 4 * self.cell_size + ypos), 4)
+        pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 4 * self.cell_size + ypos), (xpos + 2 * self.cell_size, ypos), 4)
+
+    def draw_z_piece_slot(self, xpos, ypos, x, y):
+
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+3] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos+1*self.cell_size), (xpos, ypos +3*self.cell_size), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos +3*self.cell_size), (xpos + 1 * self.cell_size, ypos+3*self.cell_size), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, ypos+3*self.cell_size), (xpos + 1 * self.cell_size, ypos +2*self.cell_size), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, ypos +2*self.cell_size), (xpos + 2 * self.cell_size, ypos +2*self.cell_size), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, ypos +2*self.cell_size), (xpos + 2 * self.cell_size, ypos), 4)
     
-    def draw_s_piece_slot(self, xpos, ypos):
+    def draw_s_piece_slot(self, xpos, ypos, x, y):
+
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 2 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 2 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 2 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 2 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 3 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 3 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 1 * self.cell_size + ypos), 4)
 
-    def draw_l_piece_slot(self, xpos, ypos):
+    def draw_l_piece_slot(self, xpos, ypos, x, y):
+        
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+3] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+3] = 1
+
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 1 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 1 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 1 * self.cell_size + ypos), (xpos + 1 * self.cell_size, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1 * self.cell_size, 3 * self.cell_size + ypos), (xpos + 2 * self.cell_size, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 2 * self.cell_size, 3 * self.cell_size + ypos), (xpos + 2 * self.cell_size, ypos), 4)
 
-    def draw_j_piece_slot(self, xpos, ypos):
+    def draw_j_piece_slot(self, xpos, ypos, x, y):
+
+        self.board.grid[self.shop_slot_y_cells[y]][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+3][x+1] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+2][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]+1][x+2] = 1
+        self.board.grid[self.shop_slot_y_cells[y]][x+3] = 1
+        
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, ypos), (xpos, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos, 3 * self.cell_size + ypos), (xpos + 1*self.cell_size, 3 * self.cell_size + ypos), 4)
         pygame.draw.line(self.screen, (0, 0, 0), (xpos + 1*self.cell_size, 3 * self.cell_size + ypos), (xpos + 1*self.cell_size, 1 * self.cell_size + ypos), 4)
@@ -416,14 +471,22 @@ class Game:
                 self.screen.blit(text, text_rect)
 
         if level in [1, 6, 11, 16, 21, 26]:
+            self.initialize_shop_slots()
             self.draw_shop()
             self.shop_phase = True
+            self.storeGrav = self.gravity
+            self.gravity = 500
         else:
             self.shop_phase = False
+            self.gravity = self.storeGrav
+            self.board.clear_shop_area()  # Clear the shop area
 
         pygame.display.update()
     
     def update(self):
+        if(self.shop_phase):
+            self.storeGrav = self.gravity
+            self.gravity = 500
         current_time = pygame.time.get_ticks()
         if current_time - self.last_gravity_time >= self.gravity:
             if self.board.can_move(self.current_piece, 0, 1, self.shop_phase):
@@ -469,6 +532,8 @@ class Game:
                             (self.offset_x + draw_x * self.cell_size,
                             self.offset_y + draw_y * self.cell_size,
                             self.cell_size, self.cell_size))
+        
+        self.board.draw_borders(self.offset_x, self.offset_y, self.shop_phase)
 
         # Draw the three-sided border, leaving the top open
         pygame.draw.line(self.screen, (0, 0, 0), 
@@ -481,8 +546,6 @@ class Game:
                         (self.offset_x + self.board_pixel_width, self.offset_y + 2*self.cell_size), 
                         (self.offset_x + self.board_pixel_width, self.offset_y + self.board_pixel_height + 2*self.cell_size), 4)
         
-        self.board.draw_borders(self.offset_x, self.offset_y, self.shop_phase)
-
         if self.shop_phase:
             self.draw_shop()
 

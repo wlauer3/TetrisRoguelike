@@ -39,7 +39,7 @@ class Board:
             for x, cell in enumerate(row):
                 if cell:
                     if piece.y + y >= 0:  # Prevent writing to negative indexes
-                        self.grid[piece.y + y][piece.x + x] = cell
+                        self.grid[piece.y + y][piece.x + x] = 2
 
     def clear_lines(self, score_manager):
         lines_cleared = 0
@@ -75,6 +75,8 @@ class Board:
                     # Check if the new position is occupied
                     if new_y >= 0 and self.grid[new_y][new_x] == 1:
                         return False
+                    if new_y >= 0 and self.grid[new_y][new_x] == 2:
+                        return False
 
                     if shop_phase:
                         if new_x >= self.width + self.shop_width - 1:
@@ -88,16 +90,26 @@ class Board:
     def draw_borders(self, offset_x, offset_y, shop_phase):
         for y in range(self.height):
             if(shop_phase):
-                for x in range(self.width + self.shop_width):
-                    if self.grid[y][x] == 1:
-                        pygame.draw.rect(self.screen, (255, 0, 0),
+                for x in range(self.width+self.shop_width):
+                    if self.grid[y][x] == 2:
+                        pygame.draw.rect(self.screen, (200, 55, 169),
                                         (offset_x + x * self.cell_size,
                                         offset_y + (y-2) * self.cell_size,
                                         self.cell_size, self.cell_size))
+                    if (self.grid[y][x] == 1):
+                        pygame.draw.rect(self.screen, (0, 0, 0),
+                                        (offset_x + x * self.cell_size,
+                                        offset_y + (y-2) * self.cell_size,
+                                        self.cell_size, self.cell_size))  
             else:
                 for x in range(self.width):
-                    if self.grid[y][x] == 1:
-                        pygame.draw.rect(self.screen, (255, 0, 0),
+                    if self.grid[y][x] == 2:
+                        pygame.draw.rect(self.screen, (200, 55, 169),
                                         (offset_x + x * self.cell_size,
                                         offset_y + (y-2) * self.cell_size,
                                         self.cell_size, self.cell_size))
+                        
+    def clear_shop_area(self):
+        for y in range(self.height):
+            for x in range(self.width+2, self.width + self.shop_width):
+                self.grid[y][x] = 0
