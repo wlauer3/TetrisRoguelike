@@ -96,7 +96,7 @@ class Board:
                                         (offset_x + x * self.cell_size,
                                         offset_y + (y-2) * self.cell_size,
                                         self.cell_size, self.cell_size))
-                    if (self.grid[y][x] == 1):
+                    if (self.grid[y][x] == 1 and x < self.width):
                         pygame.draw.rect(self.screen, (0, 0, 0),
                                         (offset_x + x * self.cell_size,
                                         offset_y + (y-2) * self.cell_size,

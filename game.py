@@ -29,10 +29,14 @@ class Game:
         self.score = 0  # Initialize the score attribute
         self.shop_slots = [1, 2, 3, 4, 5, 6, 7, 8]  # Define slots
         self.shop_slot_grids = []
+        self.shop_items = [0,0,0]
         self.shop_phase = False
         self.initialize_shop_slots()
         self.shop_x_cells = [0, 0, 0]
         self.shop_y_cells = [0, 0, 0]
+        self.shop_initialized = False
+        self.shop_initial_x = [0 ,0 ,0]
+        
         
         self.level_manager = LevelManager()
         self.score_manager = ScoreManager(self.level_manager)
@@ -242,26 +246,30 @@ class Game:
 
     def initialize_shop_slots(self):
         if not self.shop_phase:
+            print(f"Initializing the shop")
             random.shuffle(self.shop_slots)
-            self.shop_slot_grids = []
             self.shop_slot_y_positions = []  # List to store the Y positions of the slots
             self.shop_slot_y_cells = []
             self.shop_x = []
+            self.shop_items = []
             self.shop_y = []
             for _ in range(3):  # Number of shop items available
-                slot_grid = [[0 for _ in range(4)] for _ in range(4)]  # Create empty slot grids
-                self.shop_slot_grids.append(slot_grid)
                 y_position = self.offset_y + random.randint(4, 17) * self.cell_size  # Random Y position for each slot
                 y_cell = int((y_position - self.offset_y)/self.cell_size) + 2
                 self.shop_slot_y_positions.append(y_position)
                 self.shop_slot_y_cells.append(y_cell)
                 self.shop_y.append(y_cell)
+                self.shop_items.append(y_cell)
             self.shop_y_cells = self.shop_y
-            self.shop_phase = True
+        self.shop_phase = True
 
     def draw_shop(self):
         xpos = self.board.width * self.cell_size + self.offset_x + 2 * self.cell_size  # Adjust xpos to be next to the main board
-
+        if(self.shop_items[0] == 0):
+            slot2 = 0
+        if(self.shop_items[1] == 0):
+            slot3 = 0
+        
         # Draw the slots
         for i in range(3):  # Number of shop items available
             slot_width = 0
@@ -282,45 +290,71 @@ class Game:
                 slot_width = 2  # Width for LPiece slot
             elif slot_type == 8:
                 slot_width = 2  # Width for JPiece slot
-            if (i == 0):
-                slot = self.board.width + 1
-                slot2 = slot_width
-                self.shop_x.append(slot)
-            if (i == 1):
-                slot = self.board.width + slot2 + 3
-                slot3 = slot_width
-                self.shop_x.append(slot)
-            if (i == 2):
-                slot = self.board.width + slot2 + slot3 + 5
-                self.shop_x.append(slot)
-            ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
-            self.draw_shop_slot(i, xpos, ypos, slot)
-            
+            if(self.shop_items[i] != 0):
+                if (i == 0):
+                    slot = self.board.width + 1
+                    slot2 = slot_width
+                    self.shop_x.append(slot)  
+                if (i == 1):
+                    if(self.shop_initialized == False):
+                        slot = self.board.width + slot2 + 3
+                        slot3 = slot_width
+                        self.shop_x.append(slot)
+                    if(self.shop_initialized == True):
+                        if(slot2 == 0):
+                            slot = self.board.width + self.shop_initial_x[1] + 3
+                        if(slot2 != 0):
+                            slot = self.board.width + slot2 + 3
+                        slot3 = slot_width
+                        self.shop_x.append(slot)
+                if (i == 2):
+                    if(self.shop_initialized == False):
+                        slot = self.board.width + slot2 + slot3 + 5
+                        self.shop_x.append(slot)
+                    if(self.shop_initialized == True):
+                        if(slot2 == 0 and slot3 == 0):  
+                            slot = self.board.width + self.shop_initial_x[1] + self.shop_initial_x[2] + 5
+                        elif(slot2 == 0 and slot3 != 0):
+                            slot = self.board.width + self.shop_initial_x[1] + slot3 + 5
+                        elif(slot2 != 0 and slot3 == 0):
+                            slot = self.board.width + slot2 + self.shop_initial_x[2] + 5
+                        elif(slot2 != 0 and slot3 != 0):
+                            slot = self.board.width + slot2 + slot3 + 5
+                        self.shop_x.append(slot)
+                ypos = self.shop_slot_y_positions[i]  # Use the stored Y position
+                self.draw_shop_slot(i, xpos, ypos, slot)
             xpos += (slot_width * self.cell_size) + (2 * self.cell_size)  # Adjust spacing for next slot
+        
+        if (self.shop_initialized == False):
+            self.shop_initial_x[0] = slot
+            self.shop_initial_x[1] = slot2
+            self.shop_initial_x[2] = slot3
+            self.shop_initialized = True
 
     def draw_shop_slot(self, index, xpos, ypos, slot):
         slot_type = self.shop_slots[index]
+        if(self.shop_items[index] != 0):
+            if slot_type == 1:
+                self.draw_i_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 2:
+                self.draw_o_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 3:
+                self.draw_t_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 4:
+                self.draw_jorl_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 5:
+                self.draw_z_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 6:
+                self.draw_s_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 7:
+                self.draw_l_piece_slot(xpos, ypos, slot, index)
+            elif slot_type == 8:
+                self.draw_j_piece_slot(xpos, ypos, slot, index)
 
-        if slot_type == 1:
-            self.draw_i_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 2:
-            self.draw_o_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 3:
-            self.draw_t_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 4:
-            self.draw_jorl_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 5:
-            self.draw_z_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 6:
-            self.draw_s_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 7:
-            self.draw_l_piece_slot(xpos, ypos, slot, index)
-        elif slot_type == 8:
-            self.draw_j_piece_slot(xpos, ypos, slot, index)
-
-        # Check if slot is fully occupied
-        if self.is_slot_filled(index, self.shop_slots):
-            print(f"Slot filled")
+            # Check if slot is fully occupied
+            if self.is_slot_filled(index, self.shop_slots):
+                self.attempt_to_purchase(index, self.shop_slots)
+                print(f"Slot filled")
 
     def is_slot_filled(self, index, shop_slots):
         slot_type = shop_slots[index]
@@ -369,7 +403,119 @@ class Game:
                    self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] == 2 and
                    self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] == 2)
         return False
-    
+
+    def attempt_to_purchase(self, index, shop_slots):
+        slot_type = shop_slots[index]
+        if slot_type == 1:  # I piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+4][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+        if slot_type == 2:  # O piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+        if slot_type == 3:  # T piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+4] = 0
+        if slot_type == 4:  # JorL piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+2] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+4][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+4][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+        if slot_type == 5:  # S piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+        if slot_type == 6:  # Z piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+        if slot_type == 7:  # L piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+3] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+        if slot_type == 8:  # J piece
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+1] = 0
+
+            self.board.grid[self.shop_y[index]][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]] = 0
+            self.board.grid[self.shop_y[index]+3][self.shop_x[index]+1] = 0
+            self.board.grid[self.shop_y[index]+2][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]+1][self.shop_x[index]+2] = 0
+            self.board.grid[self.shop_y[index]][self.shop_x[index]+3] = 0
+        self.shop_items[index] = 0 
+
     def draw_i_piece_slot(self, xpos, ypos, x, y):
 
         self.board.grid[self.shop_slot_y_cells[y]][x] = 1
@@ -520,6 +666,7 @@ class Game:
         else:
             self.shop_phase = False
             self.gravity = self.storeGrav
+            self.shop_initialized = False
             self.board.clear_shop_area()  # Clear the shop area
 
         pygame.display.update()
