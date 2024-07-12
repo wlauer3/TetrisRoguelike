@@ -1,5 +1,6 @@
 import pygame
 from config import Config
+from wallet import wallet
 
 class Board:
     def __init__(self, screen, shop_phase):
@@ -10,6 +11,7 @@ class Board:
         self.grid_color = Config.GRID_COLOR
         self.screen = screen
         self.grid = [[0 for _ in range(self.width + self.shop_width)] for _ in range(self.height)]
+        self.wallet = wallet
 
         # Mark border cells as occupied
         if(shop_phase):
