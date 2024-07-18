@@ -42,6 +42,7 @@ class Game:
         self.score_manager = ScoreManager(self.level_manager)
         self.board = Board(self.screen, self.shop_phase)
         self.bag = []
+        self.initialize_bag
         self.last_piece = None
         self.current_piece = self.new_piece()
         self.held_piece = None
@@ -77,13 +78,10 @@ class Game:
 
     def new_piece(self):
         if not self.bag:
-            self.initialize_bag()
-
-        new_piece = self.bag.pop()
-
-        # Avoid immediate repeats
-        if new_piece == self.last_piece and self.bag:
-            self.bag.insert(0, new_piece)
+            new_piece = choice([IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece])
+            if new_piece == self.last_piece:
+                new_piece = choice([IPiece, OPiece, TPiece, SPiece, ZPiece, JPiece, LPiece])
+        else:
             new_piece = self.bag.pop()
 
         self.last_piece = new_piece

@@ -1,7 +1,4 @@
 class SpinDetector:
-    def __init__(self):
-        pass
-
     def detect_spin(piece):
         piece_type = piece.type
         print(f"Piece type: {piece_type}")

@@ -1,6 +1,5 @@
 import pygame
 from config import Config
-import wallkicks
 
 class ZPiece:
     def __init__(self):

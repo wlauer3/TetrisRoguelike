@@ -1,6 +1,5 @@
 import pygame
 from config import Config
-import wallkicks
 
 class IPiece:
     def __init__(self):
