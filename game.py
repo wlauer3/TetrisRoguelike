@@ -193,7 +193,8 @@ class Game:
             if self.board.can_move(self.current_piece, x_offset, y_offset, self.shop_phase):
                 self.current_piece.x += x_offset
                 self.current_piece.y += y_offset
-                print(f"Rotation successful with wall kick offset: ({x_offset}, {y_offset})")
+                self.current_piece.currentWallKick = [x_offset,y_offset]
+                print(self.current_piece.currentWallKick)
                 return
 
         # If no valid kicks, revert to original state

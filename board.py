@@ -1,6 +1,7 @@
 import pygame
 from config import Config
 from wallet import wallet
+from spin_manager import SpinDetector
 
 class Board:
     def __init__(self, screen, shop_phase):
@@ -12,6 +13,7 @@ class Board:
         self.screen = screen
         self.grid = [[0 for _ in range(self.width + self.shop_width)] for _ in range(self.height)]
         self.wallet = wallet
+        self.spinDetector = SpinDetector
 
         # Mark border cells as occupied
         if(shop_phase):
@@ -42,6 +44,7 @@ class Board:
                 if cell:
                     if piece.y + y >= 0:  # Prevent writing to negative indexes
                         self.grid[piece.y + y][piece.x + x] = 2
+        self.spinDetector.detect_spin(piece)
 
     def clear_lines(self, score_manager):
         lines_cleared = 0

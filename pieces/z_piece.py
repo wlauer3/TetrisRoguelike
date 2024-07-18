@@ -23,6 +23,7 @@ class ZPiece:
         ]
         self.current_state = 0
         self.shape = self.states[self.current_state]
+        self.currentWallkick = [0,0]
         self.x = 3
         self.y = 2
         self.cell_size = Config.CELL_SIZE

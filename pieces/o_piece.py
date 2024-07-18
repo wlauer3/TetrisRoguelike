@@ -2,7 +2,6 @@ import pygame
 from config import Config
 import wallkicks
 
-
 class OPiece:
     def __init__(self):
         self.states = [
@@ -12,6 +11,7 @@ class OPiece:
         ]
         self.current_state = 0
         self.shape = self.states[self.current_state]
+        self.currentWallkick = [0,0]
         self.x = 4
         self.y = 2
         self.cell_size = Config.CELL_SIZE
